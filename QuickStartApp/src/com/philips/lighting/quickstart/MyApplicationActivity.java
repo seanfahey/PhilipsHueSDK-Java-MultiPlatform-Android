@@ -43,7 +43,7 @@ public class MyApplicationActivity extends Activity {
 
             @Override
             public void onClick(View v) {
-                randomLights();
+                partyLights();
             }
 
         });
@@ -65,6 +65,53 @@ public class MyApplicationActivity extends Activity {
             //  bridge.updateLightState(light, lightState);   // If no bridge response is required then use this simpler form.
         }
     }
+
+    /**
+     * Only good party colors
+     */
+    public void partyLights() {
+        PHBridge bridge = phHueSDK.getSelectedBridge();
+
+        List<PHLight> allLights = bridge.getResourceCache().getAllLights();
+        Random rand = new Random();
+
+        for (PHLight light : allLights) {
+            PHLightState lightState = new PHLightState();
+            //lightState.setHue(rand.nextInt(MAX_HUE));
+
+            //instead of integer hue, using the x y value, see http://www.developers.meethue.com/documentation/hue-xy-values
+            float x = rand.nextFloat();
+            float y = rand.nextFloat();
+
+            Log.w(TAG, "Before x: " + Float.toString(x) + " y: " + Float.toString(y));
+
+            //to have vibrant colors we need a big diff between x and y
+            while (x - y < 0.25){
+                x = rand.nextFloat();
+                y = rand.nextFloat();
+            }
+
+            Log.w(TAG, "After x: " + Float.toString(x) + " y: " + Float.toString(y));
+
+            //set 'em
+            lightState.setX(x);
+            lightState.setY(y);
+
+            // To validate your lightstate is valid (before sending to the bridge) you can use:
+            String validState = lightState.validateState();
+
+            if(validState != null && !validState.isEmpty()) {
+                Log.w(TAG, validState);
+            }
+            else{
+                Log.w(TAG, "state is empty!");
+            }
+
+            bridge.updateLightState(light, lightState, listener);
+            //  bridge.updateLightState(light, lightState);   // If no bridge response is required then use this simpler form.
+        }
+    }
+
     // If you want to handle the response from the bridge, create a PHLightListener object.
     PHLightListener listener = new PHLightListener() {
         
