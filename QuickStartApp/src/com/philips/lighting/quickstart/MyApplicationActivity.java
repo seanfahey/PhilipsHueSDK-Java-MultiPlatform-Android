@@ -1,5 +1,6 @@
 package com.philips.lighting.quickstart;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -96,9 +97,10 @@ public class MyApplicationActivity extends Activity {
         int audioSampleRate = 8000;
         int audioChannels = AudioFormat.CHANNEL_IN_MONO;
         int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
+        //int audioFormat = AudioFormat.ENCODING_PCM_8BIT;
         // min size plus a kb enough?
-        //int audioBuffer = AudioRecord.getMinBufferSize(audioSampleRate, audioChannels, audioFormat) + 1024;
-        int audioBuffer = 2048;
+        int audioBuffer = AudioRecord.getMinBufferSize(audioSampleRate, audioChannels, audioFormat) + 1024;
+        //int audioBuffer = 2048;
 
         //record some audio and set lights accordingly
         //http://developer.android.com/guide/topics/media/audio-capture.html
@@ -122,13 +124,32 @@ public class MyApplicationActivity extends Activity {
 
         //read in the recording
         int read;
-        byte[] data = new byte[] {};
+        //byte[] data = new byte[] {};
+        byte data[] = new byte[audioBuffer];
         //short sData[] = new short[1024];
         do{
             read = recorder.read(data, 0, audioBuffer);
             //recorder.read(sData, 0, 1024);
             if(AudioRecord.ERROR_INVALID_OPERATION != read){
-                Log.w(TAG, "audio: " + data.toString());
+
+                //http://stackoverflow.com/questions/10324355/how-to-convert-16-bit-pcm-audio-byte-array-to-double-or-float-array
+                short[] out = new short[data.length / 2]; // will drop last byte if odd number
+                ByteBuffer bb = ByteBuffer.wrap(data);
+                for (int i = 0; i < out.length; i++) {
+                    out[i] = bb.getShort();
+                }
+
+                float[] floaters = new float[out.length];
+                for (int i = 0; i < out.length; i++) {
+                    floaters[i] = out[i];
+                }
+
+                float[] pcmAsFloats = floaters;
+
+                Log.w(TAG, "audio: " + Arrays.toString(pcmAsFloats));
+
+
+                //Log.w(TAG, "audio: " + data.toString());
                 //Log.w(TAG, "audio: " + sData.toString());
             }
         }
