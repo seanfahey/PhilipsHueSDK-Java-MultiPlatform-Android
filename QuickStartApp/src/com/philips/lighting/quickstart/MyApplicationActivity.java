@@ -1,15 +1,19 @@
 package com.philips.lighting.quickstart;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 import android.app.Activity;
+import android.media.AudioFormat;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.media.MediaRecorder;
+import android.media.AudioRecord;
 
 import com.philips.lighting.hue.listener.PHLightListener;
 import com.philips.lighting.hue.sdk.PHHueSDK;
@@ -30,6 +34,9 @@ public class MyApplicationActivity extends Activity {
     private PHHueSDK phHueSDK;
     private static final int MAX_HUE=65535;
     public static final String TAG = "QuickStart";
+
+    //listen to the party
+    public boolean listen = false;
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -43,6 +50,20 @@ public class MyApplicationActivity extends Activity {
 
             @Override
             public void onClick(View v) {
+                listen = true;
+                partyLights();
+            }
+
+        });
+
+
+        Button listenButton;
+        listenButton = (Button) findViewById(R.id.buttonRand);
+        listenButton.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                listen = !listen;
                 partyLights();
             }
 
@@ -70,6 +91,52 @@ public class MyApplicationActivity extends Activity {
      * Only good party colors
      */
     public void partyLights() {
+
+        //int audioSampleRate = 44100;
+        int audioSampleRate = 8000;
+        int audioChannels = AudioFormat.CHANNEL_IN_MONO;
+        int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
+        // min size plus a kb enough?
+        //int audioBuffer = AudioRecord.getMinBufferSize(audioSampleRate, audioChannels, audioFormat) + 1024;
+        int audioBuffer = 2048;
+
+        //record some audio and set lights accordingly
+        //http://developer.android.com/guide/topics/media/audio-capture.html
+        /*
+        MediaRecorder recorder = new MediaRecorder();
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.prepare();
+        recorder.start();
+        recorder.stop();
+        recorder.release();
+        */
+
+        AudioRecord recorder = new AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                audioSampleRate,
+                audioChannels,
+                AudioFormat.ENCODING_PCM_16BIT,
+                audioBuffer
+            );
+        recorder.startRecording();
+
+        //read in the recording
+        int read;
+        byte[] data = new byte[] {};
+        //short sData[] = new short[1024];
+        do{
+            read = recorder.read(data, 0, audioBuffer);
+            //recorder.read(sData, 0, 1024);
+            if(AudioRecord.ERROR_INVALID_OPERATION != read){
+                Log.w(TAG, "audio: " + data.toString());
+                //Log.w(TAG, "audio: " + sData.toString());
+            }
+        }
+        while(listen);
+
+        recorder.stop();
+        recorder.release();
+
         PHBridge bridge = phHueSDK.getSelectedBridge();
 
         List<PHLight> allLights = bridge.getResourceCache().getAllLights();
