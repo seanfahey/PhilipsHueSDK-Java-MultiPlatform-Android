@@ -38,6 +38,25 @@ public class MyApplicationActivity extends Activity {
 
     //set the sensitivity multiplier for the mic input
     public double sensitivity = 0.6;
+
+    //public int audioSampleRate = 44100;
+    public int audioSampleRate = 8000;
+    public int audioChannels = AudioFormat.CHANNEL_IN_MONO;
+    public int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
+    //public int audioFormat = AudioFormat.ENCODING_PCM_8BIT;
+    // min size plus a kb enough?
+    public int audioBuffer = AudioRecord.getMinBufferSize(audioSampleRate, audioChannels, audioFormat);
+    //public int audioBuffer = 2048;
+    //trying a really small audio buffer for quicker loops
+    //public int audioBuffer = 128;
+
+    AudioRecord recorder = new AudioRecord(
+            MediaRecorder.AudioSource.MIC,
+            audioSampleRate,
+            audioChannels,
+            AudioFormat.ENCODING_PCM_16BIT,
+            audioBuffer
+    );
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -45,26 +64,26 @@ public class MyApplicationActivity extends Activity {
         setTitle(R.string.app_name);
         setContentView(R.layout.activity_main);
         phHueSDK = PHHueSDK.create();
-        Button randomButton;
-        randomButton = (Button) findViewById(R.id.buttonRand);
-        randomButton.setOnClickListener(new OnClickListener() {
 
-            @Override
-            public void onClick(View v) {
-                listen = true;
-                partyLights();
-            }
-
-        });
-
-        Button listenButton;
-        listenButton = (Button) findViewById(R.id.buttonRand);
-        listenButton.setOnClickListener(new OnClickListener() {
+        Button partyButton;
+        partyButton = (Button) findViewById(R.id.buttonParty);
+        partyButton.setOnClickListener(new OnClickListener() {
 
             @Override
             public void onClick(View v) {
                 listen = !listen;
                 partyLights();
+            }
+
+        });
+
+        Button stopButton;
+        stopButton = (Button) findViewById(R.id.buttonStop);
+        stopButton.setOnClickListener(new OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                stopParty();
             }
 
         });
@@ -80,33 +99,6 @@ public class MyApplicationActivity extends Activity {
         PHBridge bridge = phHueSDK.getSelectedBridge();
         List<PHLight> allLights = bridge.getResourceCache().getAllLights();
 
-        //int audioSampleRate = 44100;
-        int audioSampleRate = 8000;
-        int audioChannels = AudioFormat.CHANNEL_IN_MONO;
-        int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
-        //int audioFormat = AudioFormat.ENCODING_PCM_8BIT;
-        // min size plus a kb enough?
-        int audioBuffer = AudioRecord.getMinBufferSize(audioSampleRate, audioChannels, audioFormat) + 1024;
-        //int audioBuffer = 2048;
-
-        //record some audio and set lights accordingly
-        //http://developer.android.com/guide/topics/media/audio-capture.html
-        /*
-        MediaRecorder recorder = new MediaRecorder();
-        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        recorder.prepare();
-        recorder.start();
-        recorder.stop();
-        recorder.release();
-        */
-
-        AudioRecord recorder = new AudioRecord(
-                MediaRecorder.AudioSource.MIC,
-                audioSampleRate,
-                audioChannels,
-                AudioFormat.ENCODING_PCM_16BIT,
-                audioBuffer
-            );
         recorder.startRecording();
 
         //read in the recording
@@ -194,6 +186,11 @@ public class MyApplicationActivity extends Activity {
             }
         }
         while(listen);
+
+    }
+
+    public void stopParty(){
+        listen = false;
 
         recorder.stop();
         recorder.release();
