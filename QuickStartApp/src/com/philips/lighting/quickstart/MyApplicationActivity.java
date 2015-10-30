@@ -3,7 +3,6 @@ package com.philips.lighting.quickstart;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import android.app.Activity;
 import android.media.AudioFormat;
@@ -24,19 +23,21 @@ import com.philips.lighting.model.PHLight;
 import com.philips.lighting.model.PHLightState;
 
 /**
- * MyApplicationActivity - The starting point for creating your own Hue App.  
+ * MyApplicationActivity - The starting point for creating your own Hue App.
  * Currently contains a simple view with a button to change your lights to random colours.  Remove this and add your own app implementation here! Have fun!
- * 
+ *
  * @author SteveyO
  *
  */
 public class MyApplicationActivity extends Activity {
     private PHHueSDK phHueSDK;
-    private static final int MAX_HUE=65535;
-    public static final String TAG = "QuickStart";
+    public static final String TAG = "Party";
 
     //listen to the party
     public boolean listen = false;
+
+    //set the sensitivity multiplier for the mic input
+    public double sensitivity = 0.6;
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -56,7 +57,6 @@ public class MyApplicationActivity extends Activity {
 
         });
 
-
         Button listenButton;
         listenButton = (Button) findViewById(R.id.buttonRand);
         listenButton.setOnClickListener(new OnClickListener() {
@@ -69,22 +69,6 @@ public class MyApplicationActivity extends Activity {
 
         });
 
-    }
-
-    public void randomLights() {
-        PHBridge bridge = phHueSDK.getSelectedBridge();
-
-        List<PHLight> allLights = bridge.getResourceCache().getAllLights();
-        Random rand = new Random();
-        
-        for (PHLight light : allLights) {
-            PHLightState lightState = new PHLightState();
-            lightState.setHue(rand.nextInt(MAX_HUE));
-            // To validate your lightstate is valid (before sending to the bridge) you can use:  
-            // String validState = lightState.validateState();
-            bridge.updateLightState(light, lightState, listener);
-            //  bridge.updateLightState(light, lightState);   // If no bridge response is required then use this simpler form.
-        }
     }
 
     /**
@@ -139,12 +123,10 @@ public class MyApplicationActivity extends Activity {
                     out[i] = bb.getShort();
                 }
 
-                float[] floaters = new float[out.length];
+                float[] pcmAsFloats = new float[out.length];
                 for (int i = 0; i < out.length; i++) {
-                    floaters[i] = out[i];
+                    pcmAsFloats[i] = out[i];
                 }
-
-                float[] pcmAsFloats = floaters;
 
                 //Log.w(TAG, "audio: " + Arrays.toString(pcmAsFloats));
 
@@ -161,12 +143,10 @@ public class MyApplicationActivity extends Activity {
                     */
                     //lightState.setSaturation(255);
 
-                    int pcmPos = 0;
-
                     //take the first samples
                     //convert the pcm data sample to a value between 1.000 and 0.000, we can clip to values outside
-                    double x = Math.abs(pcmAsFloats[lightCount++]) / 10000;
-                    double y = Math.abs(pcmAsFloats[lightCount++]) / 10000;
+                    double x = (Math.abs(pcmAsFloats[lightCount++]) / 10000) * sensitivity;
+                    double y = (Math.abs(pcmAsFloats[lightCount++]) / 10000) * sensitivity;
 
                     if(x > 1){
                         x = x / 10;
@@ -177,7 +157,7 @@ public class MyApplicationActivity extends Activity {
 
                     //instead of integer hue, using the x y value, see http://www.developers.meethue.com/documentation/supported-lights
                     //don't fall into the white areas of Gamut B
-                    while ((y > 0.175 && x < 0.525)){
+                    while ((y > 0.125 && (x < 0.6 || x > 0.2))){
                         x = Math.abs(pcmAsFloats[lightCount++]) / 10000;
                         y = Math.abs(pcmAsFloats[lightCount++]) / 10000;
 
