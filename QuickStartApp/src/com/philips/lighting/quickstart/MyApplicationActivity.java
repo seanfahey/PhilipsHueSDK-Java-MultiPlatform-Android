@@ -1,7 +1,6 @@
 package com.philips.lighting.quickstart;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -128,12 +127,9 @@ public class MyApplicationActivity extends Activity {
 
         //read in the recording
         int read;
-        //byte[] data = new byte[] {};
         byte data[] = new byte[audioBuffer];
-        //short sData[] = new short[1024];
         do{
             read = recorder.read(data, 0, audioBuffer);
-            //recorder.read(sData, 0, 1024);
             if(AudioRecord.ERROR_INVALID_OPERATION != read){
 
                 //http://stackoverflow.com/questions/10324355/how-to-convert-16-bit-pcm-audio-byte-array-to-double-or-float-array
@@ -150,26 +146,57 @@ public class MyApplicationActivity extends Activity {
 
                 float[] pcmAsFloats = floaters;
 
-                Log.w(TAG, "audio: " + Arrays.toString(pcmAsFloats));
+                //Log.w(TAG, "audio: " + Arrays.toString(pcmAsFloats));
 
+                int lightCount = 0;
                 for (PHLight light : allLights) {
                     PHLightState lightState = new PHLightState();
-                    lightState.setHue((int) pcmAsFloats[0]);
-/*
-                    //instead of integer hue, using the x y value, see http://www.developers.meethue.com/documentation/hue-xy-values
-                    //to have vibrant colors we need a big diff between x and y
-                    while (x - y < 0.25){
-                        x = rand.nextFloat();
-                        y = rand.nextFloat();
+
+                    //http://www.developers.meethue.com/documentation/core-concepts
+                    //lightState.setHue((int) pcmAsFloats[0]);
+                    /*
+                    Reducing the saturation takes this hue and moves it in a straight line towards
+                    the white point. So "sat":25 always gives the most saturated colors and reducing
+                    it to "sat":200 makes them less intense and more white.
+                    */
+                    //lightState.setSaturation(255);
+
+                    int pcmPos = 0;
+
+                    //take the first samples
+                    //convert the pcm data sample to a value between 1.000 and 0.000, we can clip to values outside
+                    double x = Math.abs(pcmAsFloats[lightCount++]) / 10000;
+                    double y = Math.abs(pcmAsFloats[lightCount++]) / 10000;
+
+                    if(x > 1){
+                        x = x / 10;
+                    }
+                    if(y > 1){
+                        y = y / 10;
                     }
 
-                    Log.w(TAG, " x: " + pcmAsFloats[0] + " y: " + pcmAsFloats[1]);
+                    //instead of integer hue, using the x y value, see http://www.developers.meethue.com/documentation/supported-lights
+                    //don't fall into the white areas of Gamut B
+                    while ((y > 0.175 && x < 0.525)){
+                        x = Math.abs(pcmAsFloats[lightCount++]) / 10000;
+                        y = Math.abs(pcmAsFloats[lightCount++]) / 10000;
+
+                        if(x > 1){
+                            x = x / 10;
+                        }
+                        if(y > 1){
+                            y = y / 10;
+                        }
+                    }
+
+                    Log.w(TAG, " x: " + x + " y: " + y);
 
                     //set 'em
-                    lightState.setX(x);
-                    lightState.setY(y);
+                    lightState.setX((float) x, true);
+                    lightState.setY((float) y, true);
 
                     // To validate your lightstate is valid (before sending to the bridge) you can use:
+                    /*
                     String validState = lightState.validateState();
 
                     if(validState != null && !validState.isEmpty()) {
@@ -178,7 +205,8 @@ public class MyApplicationActivity extends Activity {
                     else{
                         Log.w(TAG, "state is empty!");
                     }
-*/
+                    */
+
                     bridge.updateLightState(light, lightState, listener);
                     //  bridge.updateLightState(light, lightState);   // If no bridge response is required then use this simpler form.
                 }
