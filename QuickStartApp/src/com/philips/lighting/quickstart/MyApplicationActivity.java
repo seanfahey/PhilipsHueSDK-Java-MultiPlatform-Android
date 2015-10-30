@@ -93,6 +93,10 @@ public class MyApplicationActivity extends Activity {
      */
     public void partyLights() {
 
+        //setup hue connection
+        PHBridge bridge = phHueSDK.getSelectedBridge();
+        List<PHLight> allLights = bridge.getResourceCache().getAllLights();
+
         //int audioSampleRate = 44100;
         int audioSampleRate = 8000;
         int audioChannels = AudioFormat.CHANNEL_IN_MONO;
@@ -148,56 +152,43 @@ public class MyApplicationActivity extends Activity {
 
                 Log.w(TAG, "audio: " + Arrays.toString(pcmAsFloats));
 
+                for (PHLight light : allLights) {
+                    PHLightState lightState = new PHLightState();
+                    lightState.setHue((int) pcmAsFloats[0]);
+/*
+                    //instead of integer hue, using the x y value, see http://www.developers.meethue.com/documentation/hue-xy-values
+                    //to have vibrant colors we need a big diff between x and y
+                    while (x - y < 0.25){
+                        x = rand.nextFloat();
+                        y = rand.nextFloat();
+                    }
 
-                //Log.w(TAG, "audio: " + data.toString());
-                //Log.w(TAG, "audio: " + sData.toString());
+                    Log.w(TAG, " x: " + pcmAsFloats[0] + " y: " + pcmAsFloats[1]);
+
+                    //set 'em
+                    lightState.setX(x);
+                    lightState.setY(y);
+
+                    // To validate your lightstate is valid (before sending to the bridge) you can use:
+                    String validState = lightState.validateState();
+
+                    if(validState != null && !validState.isEmpty()) {
+                        Log.w(TAG, validState);
+                    }
+                    else{
+                        Log.w(TAG, "state is empty!");
+                    }
+*/
+                    bridge.updateLightState(light, lightState, listener);
+                    //  bridge.updateLightState(light, lightState);   // If no bridge response is required then use this simpler form.
+                }
+
             }
         }
         while(listen);
 
         recorder.stop();
         recorder.release();
-
-        PHBridge bridge = phHueSDK.getSelectedBridge();
-
-        List<PHLight> allLights = bridge.getResourceCache().getAllLights();
-        Random rand = new Random();
-
-        for (PHLight light : allLights) {
-            PHLightState lightState = new PHLightState();
-            //lightState.setHue(rand.nextInt(MAX_HUE));
-
-            //instead of integer hue, using the x y value, see http://www.developers.meethue.com/documentation/hue-xy-values
-            float x = rand.nextFloat();
-            float y = rand.nextFloat();
-
-            Log.w(TAG, "Before x: " + Float.toString(x) + " y: " + Float.toString(y));
-
-            //to have vibrant colors we need a big diff between x and y
-            while (x - y < 0.25){
-                x = rand.nextFloat();
-                y = rand.nextFloat();
-            }
-
-            Log.w(TAG, "After x: " + Float.toString(x) + " y: " + Float.toString(y));
-
-            //set 'em
-            lightState.setX(x);
-            lightState.setY(y);
-
-            // To validate your lightstate is valid (before sending to the bridge) you can use:
-            String validState = lightState.validateState();
-
-            if(validState != null && !validState.isEmpty()) {
-                Log.w(TAG, validState);
-            }
-            else{
-                Log.w(TAG, "state is empty!");
-            }
-
-            bridge.updateLightState(light, lightState, listener);
-            //  bridge.updateLightState(light, lightState);   // If no bridge response is required then use this simpler form.
-        }
     }
 
     // If you want to handle the response from the bridge, create a PHLightListener object.
